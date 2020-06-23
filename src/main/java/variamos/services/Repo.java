@@ -269,19 +269,19 @@ public class Repo {
 
 		/** Repository URL after creation */
 		String repositoryUrl = "";
-		String gitHubPath = "";
+		String gitHubPat = "";
 
 		if (cvsSettingsJson.contains("cvs_settings")) {
 			cvsSettingsJson = cvsSettingsJson.substring(16, cvsSettingsJson.length() - 1);
 		}
 
 		GHVCsSettings cvsSettings = new Gson().fromJson(cvsSettingsJson, GHVCsSettings.class);
-		gitHubPath = cvsSettings.githubPat;
+		gitHubPat = cvsSettings.githubPat;
 
 		String repositoryName = cvsSettings.domainRepositoryPrefix + cvsSettings.productLineName.replaceAll(" ","-")
 				+ cvsSettings.domainRepositorySufix;
 		String result = this.createRepo(repositoryName, cvsSettings.productLineName,
-				cvsSettings.productLineName + " domain repository ", gitHubPath);
+				cvsSettings.productLineName + " domain repository ", gitHubPat);
 
 		try {
 			repositoryUrl = (new Gson().fromJson(result, JsonElement.class)).getAsJsonObject().get("html_url")
@@ -291,6 +291,7 @@ public class Repo {
 
 			if (result.toUpperCase().indexOf("ALREADY EXISTS") > -1) {
 				result = "";
+				repositoryUrl = "https://github.com/" + cvsSettings.githubUser + "/" + repositoryName;
 			} else {
 				result = "ERROR";
 			}
@@ -304,11 +305,12 @@ public class Repo {
 
 				File repositoryDirectory = new File(REPOSITORY_ROOT + repositoryName);
 				if (!repositoryDirectory.exists()) {
-					repositoryDirectory.mkdir();
+					//repositoryDirectory.mkdir();
+					repositoryDirectory.mkdirs();
 				}
 
 				Git git = Git.cloneRepository().setURI(repositoryUrl).setDirectory(repositoryDirectory)
-						.setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", gitHubPath)).call();
+						.setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", gitHubPat)).call();
 
 				cvsSettings.githubPat = "";
 				cvsSettings.githubUser = "";
@@ -320,7 +322,7 @@ public class Repo {
 
 				git.add().addFilepattern("sple.json").call();
 				git.commit().setMessage("sple.json initial version").call();
-				git.push().setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", gitHubPath)).call();
+				git.push().setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", gitHubPat)).call();
 
 			} catch (IOException ex) {
 				result = "ERROR";
